@@ -1,0 +1,94 @@
+project_name: nsw_load_forecasting
+seed: 42
+
+data:
+  feature_file: data/nsw_features.csv
+  actual_file: data/nsw_actual.csv
+  baseline_file: data/nsw_baseline_forecast.csv
+  timestamp_col: timestamp
+  target_col: load_mw
+  actual_target_col: load_mw
+  baseline_target_col: baseline_load_mw
+  known_future_covariates:
+    - hour
+    - day_of_month
+    - month
+    - day_of_week
+    - day_of_year
+    - year
+    - is_weekend
+    - is_public_holiday
+    - is_school_holiday
+    - covid_period_2020_2021
+    - covid_lockdown_strict
+    - sydney_fc_temperature_2m
+    - sydney_fc_relative_humidity_2m
+    - sydney_fc_dew_point_2m
+    - sydney_fc_apparent_temperature
+    - sydney_fc_surface_pressure
+    - sydney_fc_wind_speed_10m
+    - sydney_fc_wind_direction_10m
+    - sydney_fc_shortwave_radiation
+    - bankstown_fc_temperature_2m
+    - bankstown_fc_relative_humidity_2m
+    - bankstown_fc_dew_point_2m
+    - bankstown_fc_apparent_temperature
+    - bankstown_fc_surface_pressure
+    - bankstown_fc_wind_speed_10m
+    - bankstown_fc_wind_direction_10m
+    - bankstown_fc_shortwave_radiation
+    - canberra_fc_temperature_2m
+    - canberra_fc_relative_humidity_2m
+    - canberra_fc_dew_point_2m
+    - canberra_fc_apparent_temperature
+    - canberra_fc_surface_pressure
+    - canberra_fc_wind_speed_10m
+    - canberra_fc_wind_direction_10m
+    - canberra_fc_shortwave_radiation
+
+splits:
+  train_start: 2017-01-01 00:00:00
+  train_end: 2022-12-31 23:30:00
+  val_start: 2023-01-01 00:00:00
+  val_end: 2023-10-28 23:30:00
+  test_start: 2023-10-29 00:00:00
+  test_end: 2025-10-07 23:30:00
+
+window:
+  steps_per_hour: 2
+  lookback_hours: 168
+  horizon_hours: 24
+  stride_hours: 24
+
+training:
+  batch_size: 64
+  epochs: 30
+  lr: 0.0005
+  weight_decay: 0.0001
+  patience: 7
+  num_workers: 0
+
+models:
+  baseline:
+    seasonal_lag_hours: [24, 48, 168]
+  patchtst:
+    d_model: 128
+    num_heads: 4
+    num_layers: 3
+    patch_len: 16
+    stride: 8
+    dropout: 0.1
+  itransformer:
+    d_model: 128
+    num_heads: 4
+    num_layers: 3
+    dropout: 0.1
+  diffusion:
+    hidden_dim: 128
+    timesteps: 100
+    beta_start: 0.0001
+    beta_end: 0.02
+    samples: 50
+
+output:
+  root_dir: results

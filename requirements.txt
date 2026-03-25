@@ -1,0 +1,17 @@
+numpy==1.26.4
+pandas==2.2.2
+pyyaml==6.0.1
+scikit-learn==1.4.2
+matplotlib==3.8.4
+tqdm==4.66.4
+
+# deep learning
+torch==2.2.2
+
+# chronos / huggingface
+transformers==4.41.2
+huggingface_hub==0.23.0
+accelerate==0.30.1
+
+# optional (better compatibility)
+scipy==1.13.1

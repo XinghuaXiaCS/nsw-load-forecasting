@@ -1,0 +1,216 @@
+Metadata-Version: 2.4
+Name: nsw-load-forecasting
+Version: 0.1.0
+Summary: End-to-end NSW load forecasting research framework
+Requires-Python: >=3.10
+Description-Content-Type: text/markdown
+Requires-Dist: numpy>=1.26
+Requires-Dist: pandas>=2.1
+Requires-Dist: pyyaml>=6.0
+Requires-Dist: scikit-learn>=1.4
+Requires-Dist: matplotlib>=3.8
+Requires-Dist: tqdm>=4.66
+Requires-Dist: torch>=2.2
+
+# NSW Load Forecasting Research Framework
+
+A GitHub-ready, end-to-end research project for short-term NSW electricity load forecasting.
+
+This repository turns the earlier comparison workflow into a reproducible research framework with:
+
+- strong baselines
+- residual learning
+- PatchTST
+- iTransformer
+- Chronos-2 wrapper
+- conditional diffusion for probabilistic residual forecasting
+- regime-aware evaluation
+- comparison plots and exportable results
+
+## Research framing
+
+The original uploaded project compared a baseline forecast, Chronos-2, and iTransformer on NSW 30-minute load forecasting with a 7-day lookback and 24-hour horizon, using rolling evaluation windows and test dates from 2023-10-29 to 2025-10-07. The uploaded scripts also used future covariates for Chronos-2 and careful timestamp alignment for iTransformer. fileciteturn1file3L5-L17 fileciteturn1file1L1-L22
+
+The uploaded comparison results showed that the baseline clearly outperformed Chronos-2 and iTransformer on the aligned test set, with MAE 77.9 MW for the baseline, 407.0 MW for Chronos-2, and 517.6 MW for iTransformer. fileciteturn0file4
+
+This repository extends that setup into a paper-friendly framework focused on:
+
+1. **Direct forecasting**: predict the future load directly.
+2. **Residual forecasting**: predict the residual over a strong operational baseline.
+3. **Regime-aware analysis**: evaluate models separately on peak, ramp, weekend, holiday, and hot-weather periods.
+4. **Probabilistic forecasting**: use a diffusion model to generate multiple future paths.
+
+## Project structure
+
+```text
+nsw-load-forecasting-github/
+├── README.md
+├── requirements.txt
+├── .gitignore
+├── configs/
+│   └── default.yaml
+├── scripts/
+│   ├── train_baseline.sh
+│   ├── train_patchtst.sh
+│   ├── train_itransformer.sh
+│   ├── train_diffusion.sh
+│   ├── run_chronos2.sh
+│   └── compare_all.sh
+├── src/
+│   └── nsw_load_forecasting/
+│       ├── __init__.py
+│       ├── cli.py
+│       ├── config.py
+│       ├── data.py
+│       ├── evaluation.py
+│       ├── plotting.py
+│       ├── train.py
+│       ├── compare.py
+│       ├── chronos_runner.py
+│       ├── models/
+│       │   ├── baseline.py
+│       │   ├── itransformer.py
+│       │   ├── patchtst.py
+│       │   ├── diffusion.py
+│       │   └── residual.py
+│       └── utils/
+│           ├── io.py
+│           ├── metrics.py
+│           └── seed.py
+└── results/
+```
+
+## Data expectations
+
+This repo does not bundle raw data. Put your files into a local `data/` directory next to the repo root.
+
+Expected files:
+
+- `data/nsw_features_2017_2025_with_behaviour_with_openmeteo.csv`
+- `data/au_nsw_load_act.csv`
+- `data/au_nsw_load_fcst.csv`
+
+### Feature file
+
+The feature file should contain at least:
+
+- `timestamp`
+- `load`
+
+Optional known-future covariates are supported, including calendar flags and forecast weather variables.
+
+### Baseline files
+
+The uploaded baseline script expected `au_nsw_load_act.csv` and `au_nsw_load_fcst.csv`, with aligned timestamp parsing and baseline-vs-actual evaluation in the test window. fileciteturn1file13L1-L17 fileciteturn1file12L1-L19
+
+## Installation
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+pip install -e .
+```
+
+For Chronos-2, install the extra dependency separately if needed:
+
+```bash
+pip install chronos-forecasting
+```
+
+## Quick start
+
+### 1. Train PatchTST direct forecast
+
+```bash
+python -m nsw_load_forecasting.cli train \
+  --config configs/default.yaml \
+  --model patchtst \
+  --task direct
+```
+
+### 2. Train iTransformer residual model
+
+```bash
+python -m nsw_load_forecasting.cli train \
+  --config configs/default.yaml \
+  --model itransformer \
+  --task residual
+```
+
+### 3. Train diffusion residual model
+
+```bash
+python -m nsw_load_forecasting.cli train \
+  --config configs/default.yaml \
+  --model diffusion \
+  --task residual
+```
+
+### 4. Run Chronos-2 zero-shot
+
+```bash
+python -m nsw_load_forecasting.cli chronos \
+  --config configs/default.yaml
+```
+
+### 5. Compare all saved models
+
+```bash
+python -m nsw_load_forecasting.cli compare \
+  --config configs/default.yaml
+```
+
+## Main experimental ideas
+
+### Direct forecasting
+
+Models learn:
+
+```text
+past window -> future load
+```
+
+### Residual forecasting
+
+Models learn:
+
+```text
+residual = actual - baseline
+past window + baseline -> future residual
+final forecast = baseline + predicted residual
+```
+
+This is the main innovation layer that lets strong deep models focus on what the baseline misses.
+
+### Regime-aware evaluation
+
+The comparison script reports:
+
+- overall metrics
+- peak-load metrics
+- ramp-event metrics
+- weekend metrics
+- holiday metrics
+- hot-weather metrics
+
+### Probabilistic diffusion outputs
+
+The diffusion model generates multiple residual trajectories and reports:
+
+- mean forecast
+- p10/p50/p90
+- coverage
+- interval width
+- CRPS approximation via quantile pinball aggregation
+
+## Notes
+
+- The code is written to be clear and extensible rather than maximally optimized.
+- Diffusion is implemented as a conditional residual forecaster over future residual paths.
+- PatchTST and iTransformer are lightweight research implementations intended for rapid experimentation.
+- Chronos-2 is wrapped as an optional dependency because many environments will not have the package preinstalled.
+
+## Suggested GitHub repo title
+
+`nsw-load-forecasting-regime-aware-transformers-diffusion`
